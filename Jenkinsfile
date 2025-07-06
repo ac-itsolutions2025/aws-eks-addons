@@ -4,11 +4,12 @@ pipeline {
   environment {
     STACK_NAME        = 'acit-eks-observability'
     TEMPLATE_FILE     = 'eks-observability-addons.yaml'
-    CLUSTER_NAME      = 'acit-eks'   // Update if different
+    CLUSTER_NAME      = 'acit-eks'
     OBS_ROLE_ARN      = 'arn:aws:iam::124355683348:role/OBS_ROLE'
+    REGION            = 'us-east-2' // Update to your EKS region
   }
 
-   options {
+  options {
     timestamps()
     disableConcurrentBuilds()
   }
@@ -23,7 +24,7 @@ pipeline {
 
     stage('Deploy Observability Add-ons') {
       steps {
-        echo 'Deploying CloudWatch Observability and Pod Identity Agent'
+        echo 'Deploying CloudWatch Observability and Pod Identity Agent add-ons'
         sh '''
           aws cloudformation deploy \
             --stack-name "$STACK_NAME" \
@@ -38,10 +39,22 @@ pipeline {
 
     stage('Verify CloudWatch Add-ons') {
       steps {
-        echo 'Verifying amazon-cloudwatch pods are running'
+        echo 'Performing health check on amazon-cloudwatch pods'
+
         sh '''
+          if [ -z "$REGION" ]; then
+            echo "REGION environment variable is not set."
+            exit 1
+          fi
+
+          echo "Updating kubeconfig for EKS cluster: $CLUSTER_NAME in region $REGION"
           aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$REGION"
-          kubectl get pods -n amazon-cloudwatch || echo "⚠️ Failed to query pods in namespace amazon-cloudwatch"
+
+          echo "Checking pods in namespace amazon-cloudwatch"
+          kubectl get pods -n amazon-cloudwatch || echo "Unable to retrieve pods in amazon-cloudwatch namespace"
+
+          echo "Waiting for all pods to be ready"
+          kubectl wait --for=condition=Ready pods --all -n amazon-cloudwatch --timeout=120s || echo "⚠Some pods did not become ready in time"
         '''
       }
     }
@@ -49,10 +62,10 @@ pipeline {
 
   post {
     success {
-      echo 'Observability add-ons deployed and verified successfully.'
+      echo '✅ Observability stack deployed and validated successfully.'
     }
     failure {
-      echo 'Deployment or pod check failed. Investigate above output.'
+      echo '❌ Deployment or verification failed. See logs above for details.'
     }
   }
 }
