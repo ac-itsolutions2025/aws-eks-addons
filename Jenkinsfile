@@ -4,7 +4,7 @@ pipeline {
   environment {
     STACK_NAME        = 'acit-eks-observability'
     TEMPLATE_FILE     = 'eks-observability-addons.yaml'
-    CLUSTER_NAME      = 'acit-eks'
+    CLUSTER_NAME      = 'acit-eks-group-one'
     OBS_ROLE_ARN      = 'arn:aws:iam::124355683348:role/OBS_ROLE'
     REGION            = 'us-east-2' // Update to your EKS region
   }
@@ -62,10 +62,10 @@ pipeline {
 
   post {
     success {
-      echo '✅ Observability stack deployed and validated successfully.'
+      echo 'Observability stack deployed and validated successfully.'
     }
     failure {
-      echo '❌ Deployment or verification failed. See logs above for details.'
+      echo 'Deployment or verification failed. See logs above for details.'
     }
   }
 }
