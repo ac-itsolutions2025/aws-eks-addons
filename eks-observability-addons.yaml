@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy CloudWatch Observability and Pod Identity Agent add-ons to existing EKS cluster
+
+Parameters:
+  ClusterName:
+    Type: String
+    Description: Name of the existing EKS cluster
+
+  ObservabilityRoleArn:
+    Type: String
+    Description: IAM role ARN for CloudWatch Observability add-on (must include CloudWatchAgentServerPolicy)
+
+Resources:
+
+  ### CloudWatch Observability Add-on ###
+  CloudWatchObservabilityAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref ClusterName
+      AddonName: amazon-cloudwatch-observability
+      ServiceAccountRoleArn: !Ref ObservabilityRoleArn
+      ResolveConflicts: OVERWRITE
+
+  ### Pod Identity Agent Add-on ###
+  PodIdentityAgentAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref ClusterName
+      AddonName: eks-pod-identity-agent
+      ResolveConflicts: OVERWRITE
